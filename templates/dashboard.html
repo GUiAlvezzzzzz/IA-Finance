@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Dashboard Financeiro</h1>
+
+        {% if dados %}
+        <p><strong>Saldo Atual:</strong> R$ {{ "%.2f"|format(dados.saldo) }}</p>
+        <p><strong>Previsão de Próximo Saldo:</strong> R$ {{ "%.2f"|format(dados.previsao) }}</p>
+
+        <div class="graficos">
+            <img src="{{ url_for('static', filename='saldo.png') }}" alt="Gráfico de Saldo">
+            <img src="{{ url_for('static', filename='categorias.png') }}" alt="Gráfico por Categoria">
+        </div>
+
+        <h2>Histórico de Transações</h2>
+        <table>
+            <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Valor (R$)</th>
+            </tr>
+            {% for t in dados.transacoes %}
+            <tr>
+                <td>{{ t.Data }}</td>
+                <td>{{ t.Tipo }}</td>
+                <td>{{ t.Descrição }}</td>
+                <td>{{ t.Categoria }}</td>
+                <td>{{ "%.2f"|format(t.Valor) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>⚠️ Nenhuma transação registrada ainda.</p>
+        {% endif %}
+
+        <a href="{{ url_for('index') }}" class="botao-dashboard">⬅️ Voltar</a>
+    </div>
+</body>
+</html>

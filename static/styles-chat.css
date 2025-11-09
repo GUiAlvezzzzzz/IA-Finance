@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+
+/* Reset e fonte padrão */ 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+}
+
+/* Estilização do corpo da página */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: url('./img.1.png')
+}
+
+.container {
+    display: flex;
+    width: 95%;
+    max-width: 1300px;
+    height: 90vh;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--bg-panel);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* --- CHAT --- */
+.chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: var(--bg-dark);
+    border-right: 2px solid #334155;
+}
+
+.chat-section h1 {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+/* Balões de mensagem */
+.mensagem {
+    max-width: 75%;
+    padding: 12px 15px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.mensagem .autor {
+    font-size: 12px;
+    opacity: 0.6;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Balão do usuário */
+.mensagem.eu {
+    background: #4a91e263;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+/* Balão da IA */
+.mensagem.ia {
+    background: rgba(255, 255, 255, 0);
+    color: #ffffff;
+    border: 1px solid #ddd;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.input-area {
+    display: flex;
+    gap: 10px;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #334155;
+    color: white;
+    font-size: 1rem;
+}
+
+button {
+    background: var(--primary);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: var(--accent);
+}
+
+/* --- DASHBOARD --- */
+.dashboard {
+    flex: 1.1;
+    display: flex;
+    flex-direction: column;
+    padding: 25px;
+    background: var(--bg-panel);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--bg-panel);
+}
+
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.dashboard-header h2 {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.subtitle {
+    color: var(--secondary);
+    font-size: 0.9rem;
+}
+
+.cards {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.card {
+    flex: 1;
+    background: #0f172a;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    background: #16233a;
+}
+
+.card h3 {
+    color: var(--secondary);
+    margin-bottom: 10px;
+}
+
+.card p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.graficos {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.grafico-card {
+    background: #0f172a;
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.grafico-card h4 {
+    color: var(--secondary);
+    margin-bottom: 10px;
+}
+
+.grafico-card img {
+    width: 100%;
+    border-radius: 10px;
+    background: #1e293b;
+    padding: 10px;
+    transition: 0.3s;
+}
+
+.grafico-card img:hover {
+    transform: scale(1.02);
+}
+
+.typing {
+    font-size: 14px;
+    color: #4a90e2;
+    margin-top: 8px;
+    margin-left: 6px;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 0.2; }
+    50% { opacity: 1; }
+    100% { opacity: 0.2; }
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA Financeira 💬</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles-chat.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- CHAT (esquerda) -->
+        <div class="chat-section">
+            <h1>💸 Finance IA</h1>
+            <div id="chat-box"></div>
+
+<div id="typingIndicator" class="typing" style="display: none;">IA está digitando...</div>
+
+            
+<div class="input-area">
+    <input id="mensagem" type="text" placeholder="Digite aqui sua mensagem...">
+    <button onclick="enviarMensagem()">Enviar</button>
+</div>
+
+        </div>
+
+        <!-- DASHBOARD (direita) -->
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h2>📊 Painel Financeiro</h2>
+                <p class="subtitle">Acompanhe suas finanças em tempo real</p>
+            </div>
+            
+
+            <div class="cards">
+                <div class="card saldo">
+                    <h3>💰 Saldo Atual</h3>
+                    <p id="saldoValor">R$ 0,00</p>
+                </div>
+                <div class="card previsao">
+                    <h3>📈 Previsão</h3>
+                    <p id="previsaoValor">R$ 0,00</p>
+                </div>
+
+                <div class="card caixinha">
+                    <h3>📈 Cofre</h3>
+                    <p id="caixinhaValor">R$ 0,00</p>
+                </div>
+
+                <div class="card entrada">
+                    <h3>📈 Entrada</h3>
+                    <p id="entradaValor">R$ 0,00</p>
+                </div>
+
+                <div class="card saida">
+                    <h3>📈 Saída</h3>
+                    <p id="saidaValor">R$ 0,00</p>
+                </div>
+            </div>
+
+            <div class="graficos">
+                <div class="grafico-card">
+                    <h4>Evolução do Saldo</h4>
+                    <img id="graf1" src="/static/saldo.png" alt="Gráfico de Saldo">
+                </div>
+                <div class="grafico-card">
+                    <h4>Distribuição por Categoria</h4>
+                    <img id="graf2" src="/static/categorias.png" alt="Gráfico de Categorias">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+    <title>Login IA Finance</title>
+</head>
+<body>
+    <main class="home">
+        <form>
+            <h1>Bem-vindo ao <br> IA Finance 💰</h1>
+
+            <div class="input-box">
+                <p style="color: #f0d6d6; font-size: 16px; text-align: center; margin-bottom: 15px;">
+                    Gerencie suas finanças com inteligência e praticidade.
+                </p>
+            </div>
+
+           <button type="button" class="login" onclick="window.location.href='/login'">
+    <i class='bx bx-log-in-circle'></i> Entrar
+</button>
+
+
+            <button type="button" class="register" style="margin-top: 15px;" onclick="window.location.href='/register'">
+                <i class='bx bx-user-plus'></i> Cadastrar
+            </button>
+
+        </form>
+    </main>
+</body>
+</html>

@@ -18,24 +18,34 @@ function enviarMensagem() {
         }
         return res.json();
     })
+
+    
     .then(data => {
         // Exibe a resposta da IA
-        processar_mensagem("IA", data.resposta);
+          processar_mensagem("IA", data.resposta);
 
-        // Atualiza saldo e previsão no Dashboard
-        if (data.saldo !== null && data.saldo !== undefined) {
-            document.getElementById("saldoValor").innerText = `R$ ${data.saldo.toFixed(2)}`;
-        }
+    // Atualiza os cards
+    if (data.saldo !== undefined) {
+        document.getElementById("saldoValor").innerText = `R$ ${data.saldo.toFixed(2)}`;
+    }
+    if (data.previsao !== undefined) {
+        document.getElementById("previsaoValor").innerText = `R$ ${data.previsao.toFixed(2)}`;
+    }
+    if (data.entrada !== undefined) {
+        document.getElementById("entradaValor").innerText = `R$ ${data.entrada.toFixed(2)}`;
+    }
+    if (data.saida !== undefined) {
+        document.getElementById("saidaValor").innerText = `R$ ${data.saida.toFixed(2)}`;
+    }
+    if (data.cofre !== undefined) {
+        document.getElementById("caixinhaValor").innerText = `R$ ${data.cofre.toFixed(2)}`;
+    }
 
-        if (data.previsao !== null && data.previsao !== undefined) {
-            document.getElementById("previsaoValor").innerText = `R$ ${data.previsao.toFixed(2)}`;
-        }
-    })
-    .catch(err => {
-        processar_mensagem("Erro", "❌ Não foi possível conectar ao servidor.");
-    });
+    // Atualiza tabela sem recarregar a página
+    $('#tabelaFinanceira').DataTable().ajax.reload(null, false);
+})
 
-    input.value = "";
+     document.getElementById("mensagem").value = "";
 }
 
 document.getElementById('graf1').src = '/static/saldo.png?t=' + new Date().getTime();
@@ -49,3 +59,30 @@ function processar_mensagem(usuario, texto) {
     chat.appendChild(msg);
     chat.scrollTop = chat.scrollHeight;
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Atualiza cards ao logar
+    fetch("/chat")
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById("saldoValor").innerText = `R$ ${data.saldo.toFixed(2)}`;
+            document.getElementById("previsaoValor").innerText = `R$ ${data.previsao.toFixed(2)}`;
+            document.getElementById("entradaValor").innerText = `R$ ${data.entrada.toFixed(2)}`;
+            document.getElementById("saidaValor").innerText = `R$ ${data.saida.toFixed(2)}`;
+            document.getElementById("caixinhaValor").innerText = `R$ ${data.cofre.toFixed(2)}`;
+
+            // Agora inicializa a tabela via AJAX
+            $('#tabelaFinanceira').DataTable({
+                ajax: "/dados_tabela",
+                columns: [
+                    { data: "Data" },
+                    { data: "Tipo" },
+                    { data: "Descrição" },
+                    { data: "Categoria" },
+                    { data: "Valor" },
+                    { data: "Saldo Acumulado" }
+                ],
+                pageLength: 10
+            });
+        });
+});

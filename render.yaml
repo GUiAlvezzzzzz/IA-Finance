@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: finance-ia
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    plan: free
+    disk:
+      name: data
+      mountPath: /opt/render/data
+      sizeGB: 1

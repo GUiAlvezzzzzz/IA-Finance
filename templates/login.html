@@ -5,17 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'> 
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Login | IA Finance</title>
 </head>
 <body>
-    <main class="login">
-        <form>
-            <h1> IA Finance</h1>
+    <main class="login-bnt">
+        <form action="{{ url_for('login') }}" method="POST">
+            <h1>IA Finance</h1>
+
+
+            
+            <!-- Exibe mensagens de sucesso/erro -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                        {% for category, message in messages %}
+                            <li class="{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+
             <div class="input-box">
-                <input placeholder="Usuário" type="user">
+                <input placeholder="Usuário" type="email" name="email" required>
                 <i class="bx bxs-user"></i>
             </div>
-           <div class="input-box">
-                <input placeholder="Senha" type="password">
+
+            <div class="input-box">
+                <input placeholder="Senha" type="password" name="senha" required>
                 <i class="bx bxs-lock-alt"></i>
             </div>
 
@@ -24,13 +41,16 @@
                     <input type="checkbox">
                     Lembrar senha
                 </label>
-                <a href="#">Esqueci senha</a>
+            
             </div>
 
-            <button type="button" class="login" onclick="window.location.href='/chat'">
-    <i class='bx bx-log-in-circle'></i> Entrar
-</button>
-        
+            <button type="submit" class="login">
+                <i class='bx bx-log-in-circle'></i> Entrar
+            </button>
+
+            <p class="register-link">
+                Não tem conta? <a href="{{ url_for('register') }}">Cadastre-se</a>
+            </p>
         </form>
     </main>
 </body>

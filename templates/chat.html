@@ -4,33 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IA Financeira 💬</title>
+
+    <!-- Ícones e estilos -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles-chat.css') }}">
 </head>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+</head>
+
 <body>
+    <!-- HEADER (botão sair) -->
+    <header>
+        <a href="{{ url_for('logout') }}" class="logout-btn">
+            <i class='bx bx-log-out'></i> Sair
+        </a>
+    </header>
+
+    <!-- CONTAINER PRINCIPAL -->
     <div class="container">
-        <!-- CHAT (esquerda) -->
+        <!-- CHAT (lado esquerdo) -->
         <div class="chat-section">
-            <h1>💸 Finance IA</h1>
-            <div id="chat-box"></div>
-
-<div id="typingIndicator" class="typing" style="display: none;">IA está digitando...</div>
-
+            <h1>💸 IA Finance</h1>
             
-<div class="input-area">
-    <input id="mensagem" type="text" placeholder="Digite aqui sua mensagem...">
-    <button onclick="enviarMensagem()">Enviar</button>
-</div>
+            <!-- Caixa de mensagens -->
+            <div id="chat-box" class="chat-box">
+                <div class="mensagem ia">
+                    <span class="autor">IA Finance</span>
+                    <p>Olá 👋! Sou sua assistente financeira. Como posso ajudar hoje?</p>
+                </div>
+            </div>
 
+
+            <!-- Área de entrada -->
+            <div class="input-area">
+                <input id="mensagem" type="text" placeholder="Digite aqui sua mensagem...">
+                <button id="enviar" onclick="enviarMensagem()">
+                    <i class='bx bx-send'></i> Enviar
+                </button>
+            </div>
         </div>
 
-        <!-- DASHBOARD (direita) -->
         <div class="dashboard">
-            <div class="dashboard-header">
-                <h2>📊 Painel Financeiro</h2>
-                <p class="subtitle">Acompanhe suas finanças em tempo real</p>
-            </div>
-            
+            <h2>📑 Planilha Financeira</h2>
+            <p class="subtitle">Visualize suas movimentações em uma planilha</p>
 
+            <table id="tabelaFinanceira" class="display" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Valor</th>
+                        <th>Saldo Acumulado</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div>
+
+            
             <div class="cards">
                 <div class="card saldo">
                     <h3>💰 Saldo Atual</h3>
@@ -39,37 +76,79 @@
                 <div class="card previsao">
                     <h3>📈 Previsão</h3>
                     <p id="previsaoValor">R$ 0,00</p>
-                </div>
-
-                <div class="card caixinha">
-                    <h3>📈 Cofre</h3>
-                    <p id="caixinhaValor">R$ 0,00</p>
-                </div>
-
-                <div class="card entrada">
-                    <h3>📈 Entrada</h3>
-                    <p id="entradaValor">R$ 0,00</p>
-                </div>
-
-                <div class="card saida">
-                    <h3>📈 Saída</h3>
-                    <p id="saidaValor">R$ 0,00</p>
-                </div>
             </div>
 
-            <div class="graficos">
-                <div class="grafico-card">
-                    <h4>Evolução do Saldo</h4>
-                    <img id="graf1" src="/static/saldo.png" alt="Gráfico de Saldo">
-                </div>
-                <div class="grafico-card">
-                    <h4>Distribuição por Categoria</h4>
-                    <img id="graf2" src="/static/categorias.png" alt="Gráfico de Categorias">
-                </div>
-            </div>
-        </div>
-    </div>
+        
 
+    <!-- DataTables Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <!-- SCRIPT -->
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+
+    <script>
+        document.getElementById("mensagem").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); 
+                enviarMensagem(); 
+            }
+        });
+    </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // 🔥 Carrega os cartões automaticamente ao logar
+    fetch("/chat")
+        .then(res => res.json())
+        .then(data => {
+            if (data.saldo !== undefined)
+                document.getElementById("saldoValor").innerText = `R$ ${parseFloat(data.saldo).toFixed(2).replace(".", ",")}`;
+
+            if (data.previsao !== undefined)
+                document.getElementById("previsaoValor").innerText = `R$ ${parseFloat(data.previsao).toFixed(2).replace(".", ",")}`;
+
+            if (data.entrada !== undefined)
+                document.getElementById("entradaValor").innerText = `R$ ${parseFloat(data.entrada).toFixed(2).replace(".", ",")}`;
+
+            if (data.saida !== undefined)
+                document.getElementById("saidaValor").innerText = `R$ ${parseFloat(data.saida).toFixed(2).replace(".", ",")}`;
+
+            if (data.caixinha !== undefined)
+                document.getElementById("caixinhaValor").innerText = `R$ ${parseFloat(data.cofre).toFixed(2).replace(".", ",")}`;
+        });
+
+
+    // 🔥 Inicializa a DataTable
+    $('#tabelaFinanceira').DataTable({
+        ajax: {
+            url: "/dados_tabela",
+            dataSrc: ""
+        },
+        columns: [
+            { data: "Data" },
+            { data: "Tipo" },
+            { data: "Descrição" },
+            { data: "Categoria" },
+            {
+                data: "Valor",
+                render: d => "R$ " + parseFloat(d).toFixed(2).replace(".", ",")
+            },
+            {
+                data: "Saldo Acumulado",
+                render: d => "R$ " + parseFloat(d).toFixed(2).replace(".", ",")
+            }
+        ],
+        pageLength: 6,
+        language: {
+            url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json"
+        }
+    });
+
+});
+</script>
+
+
 </body>
 </html>

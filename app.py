@@ -2,7 +2,7 @@ import random
 import matplotlib.pyplot as plt
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 # usado para validar senha com hash
-from werkzeug.security import check_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_session import Session
 from sklearn.linear_model import LinearRegression
 from datetime import datetime
@@ -16,7 +16,7 @@ matplotlib.use('Agg')  # importante para servidores sem display
 print("pandas:", pd.__version__)
 
 app = Flask(__name__)
-ARQUIVO = "controle_financeiro.xlsx"
+
 
 # Configuração de sessão
 app.config['SESSION_PERMANENT'] = False
@@ -26,29 +26,43 @@ app.secret_key = 'chave_secreta'
 
 
 def get_db_connection():
-    conn = sqlite3.connect('database.db', check_same_thread=False)
+    conn = sqlite3.connect('banco.db', check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 
+# inicializa DB e CSV se necessário
 def init_db():
-    """Cria a tabela usuarios se não existir."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
+    """Cria o banco e a tabela de usuários e gastos, se não existirem."""
+    conn = sqlite3.connect('banco.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
+            email TEXT NOT NULL UNIQUE,
             senha TEXT NOT NULL
         )
-    """)
+    ''')
+
+    # Tabela de gastos (pode conter Entrada, Saída ou Cofre)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gastos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            tipo TEXT NOT NULL CHECK(tipo IN ('Entrada', 'Saída', 'Cofre')),
+            descricao TEXT,
+            categoria TEXT,
+            valor REAL NOT NULL,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
-
-# inicializa DB e CSV se necessário
-init_db()
 
 CSV_FILE = 'registros.csv'
 if not os.path.exists(CSV_FILE):
@@ -59,85 +73,90 @@ if not os.path.exists(CSV_FILE):
 # --- ROTAS ---
 @app.route('/')
 def index():
-    # página inicial pode ser index.html (coloque um arquivo templates/index.html)
     return render_template('index.html')
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form.get('email', '').strip().lower()
-        senha = request.form.get('senha', '').strip()
-
-        if not email or not senha:
-            flash("⚠️ Preencha todos os campos.", "error")
-            return redirect(url_for('login'))
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Primeiro: verifica se o usuário existe
-        cursor.execute(
-            "SELECT * FROM usuarios WHERE LOWER(email) = ?", (email,))
-        user = cursor.fetchone()
-
-        conn.close()
-
-        if not user:
-            flash("❌ Usuário não encontrado.", "error")
-            return redirect(url_for('login'))
-
-        if senha == user['senha']:
-            session['user_id'] = user['id']
-            flash("✅ Login bem-sucedido!", "success")
-            return redirect(url_for('chat'))
-        else:
-            flash("❌ Senha incorreta.", "error")
-            return redirect(url_for('login'))
-
-    return render_template('login.html')
-
-
+# -----------------------------------------------------------
+# ROTA DE CADASTRO
+# -----------------------------------------------------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         nome = request.form.get('nome', '').strip()
-        email = request.form.get(
-            'email', '').strip().lower()  # padroniza o e-mail
+        email = request.form.get('email', '').strip().lower()
         senha = request.form.get('senha', '').strip()
 
-        # Verificação de campos obrigatórios
         if not nome or not email or not senha:
             flash("⚠️ Preencha todos os campos.", "error")
-            return redirect(url_for('register'))
+            return render_template('register.html')
 
         conn = get_db_connection()
         cursor = conn.cursor()
 
         # Verifica se o e-mail já existe
-        cursor.execute(
-            "SELECT id FROM usuarios WHERE LOWER(email) = ?", (email,))
+        cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
         existing_user = cursor.fetchone()
-
         if existing_user:
             flash("❌ Este e-mail já está cadastrado.", "error")
             conn.close()
-            return redirect(url_for('register'))
+            return render_template('register.html')
+
+        # Criptografa a senha antes de salvar
+        senha_hash = generate_password_hash(senha)
 
         # Insere novo usuário
         cursor.execute("""
             INSERT INTO usuarios (nome, email, senha)
             VALUES (?, ?, ?)
-        """, (nome, email, senha))
-
+        """, (nome, email, senha_hash))
         conn.commit()
         conn.close()
 
         flash("✅ Cadastro realizado com sucesso! Faça login.", "success")
         return redirect(url_for('login'))
 
-    # Se for GET, apenas renderiza a página de cadastro
     return render_template('register.html')
+
+# -----------------------------------------------------------
+# ROTA DE LOGIN
+# -----------------------------------------------------------
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        usuario = request.form['email']
+        senha = request.form['senha']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM usuarios WHERE email = ?", (usuario,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user['senha'], senha):
+            session['usuario'] = usuario
+            flash('Login realizado com sucesso!', 'success')
+            return redirect(url_for('chat'))
+        else:
+            flash('Usuário ou senha incorretos!', 'error')
+            return render_template('login.html')
+        
+
+
+    # Se for GET (ou erro), sempre renderiza a página de login
+    return render_template('login.html')
+
+# -----------------------------------------------------------
+# ROTA DE LOGOUT
+# -----------------------------------------------------------
+
+
+@app.route('/logout')
+def logout():
+    session.clear()  # Limpa a sessão (remove o usuário logado)
+    flash("Você saiu da conta com sucesso.", "success")
+    return redirect(url_for('login'))
 
 
 @app.route('/chat', methods=['GET'])
@@ -147,129 +166,109 @@ def chat():
 
 # Funções principais
 def registrar_transacao(valor, tipo, descricao, categoria):
-    try:
-        valor = float(valor)
-    except Exception:
-        valor = 0.0
+    """Registra uma transação no banco vinculada ao usuário logado."""
+    if 'usuario' not in session:
+        print("⚠️ Nenhum usuário logado.")
+        return
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Busca o ID do usuário logado
+    cursor.execute("SELECT id FROM usuarios WHERE email = ?",
+                   (session['usuario'],))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return
+
+    usuario_id = user['id']
     data = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    nova = {"Data": data, "Tipo": tipo, "Descrição": descricao,
-            "Categoria": categoria, "Valor": valor}
 
-    if os.path.exists(ARQUIVO):
-        df = pd.read_excel(ARQUIVO)
-        df = pd.concat([df, pd.DataFrame([nova])], ignore_index=True)
-    else:
-        df = pd.DataFrame([nova])
-    # força a coluna Valor como numérica
-    df["Valor"] = pd.to_numeric(df["Valor"], errors='coerce').fillna(0.0)
-    df.to_excel(ARQUIVO, index=False)
+    cursor.execute("""
+        INSERT INTO gastos (usuario_id, data, tipo, descricao, categoria, valor)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (usuario_id, data, tipo, descricao, categoria, valor))
+
+    conn.commit()
+    conn.close()
 
 
 def gerar_dashboard():
-    if not os.path.exists(ARQUIVO):
+    if 'usuario' not in session:
         return None
 
-    df = pd.read_excel(ARQUIVO)
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    # Normaliza colunas
-    if "Valor" not in df.columns or "Tipo" not in df.columns:
+    cursor.execute("SELECT id FROM usuarios WHERE email = ?", (session['usuario'],))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
         return None
 
+    usuario_id = user['id']
+
+    cursor.execute("""
+        SELECT data, tipo, descricao, categoria, valor
+        FROM gastos
+        WHERE usuario_id = ?
+        ORDER BY id
+    """, (usuario_id,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        return {"saldo": 0, "previsao": 0, "entrada": 0, "saida": 0, "cofre": 0, "tabela": []}
+
+    df = pd.DataFrame(rows, columns=['Data', 'Tipo', 'Descrição', 'Categoria', 'Valor'])
     df["Valor"] = pd.to_numeric(df["Valor"], errors='coerce').fillna(0.0)
-    # ajusta data para datetime se possível
-    try:
-        df["Data_parsed"] = pd.to_datetime(
-            df["Data"], dayfirst=True, errors='coerce')
-    except Exception:
-        df["Data_parsed"] = pd.NaT
 
-    df["Valor Ajustado"] = df.apply(lambda x: x["Valor"] if str(
-        x.get("Tipo")).lower() == "entrada".lower() else -x["Valor"], axis=1)
+    # ✅ Valores dos cards
+    entrada = df[df["Tipo"].str.lower() == "entrada"]["Valor"].sum()
+    saida = df[df["Tipo"].str.lower() == "saída"]["Valor"].sum()
+
+    # Se sua categoria para cofre for outro nome, ajuste aqui:
+    cofre = df[df["Categoria"].str.lower() == "cofre"]["Valor"].sum()
+
+    # Saldo acumulado
+    df["Valor Ajustado"] = df.apply(
+        lambda x: x["Valor"] if x["Tipo"].lower() == "entrada" else -x["Valor"], axis=1
+    )
     df["Saldo Acumulado"] = df["Valor Ajustado"].cumsum()
-    if df["Saldo Acumulado"].empty:
-        saldo = 0.0
-    else:
-        saldo = float(df["Saldo Acumulado"].iloc[-1])
+    saldo = float(df["Saldo Acumulado"].iloc[-1])
 
-    # Previsão simples
-    df = df.reset_index(drop=True)
-    df["Indice"] = df.index.values.reshape(-1)
+    # Previsão
+    df["Indice"] = df.index.values
     if len(df) >= 2:
         modelo = LinearRegression()
-        X = df[["Indice"]].values.reshape(-1, 1)
-        y = df["Saldo Acumulado"].values
-        try:
-            modelo.fit(X, y)
-            previsao = float(modelo.predict([[len(df) + 1]])[0])
-        except Exception:
-            previsao = saldo
+        modelo.fit(df[["Indice"]], df["Saldo Acumulado"])
+        previsao = float(modelo.predict([[len(df) + 1]])[0])
     else:
         previsao = saldo
 
-    # Geração dos gráficos (salva em static/)
-    try:
-        os.makedirs("static", exist_ok=True)
+    # Dados da tabela
+    dados_tabela = df.to_dict(orient='records')
 
-        # PALETA CLEAN
-        azul = "#3A6EA5"
-        cinza = "#7A7A7A"
+    # ✅ Agora retorna TUDO
+    return {
+        "saldo": saldo,
+        "previsao": previsao,
+        "entrada": entrada,
+        "saida": saida,
+        "cofre": cofre,
+        "tabela": dados_tabela
+    }
 
-        # --- Gráfico de Saldo como BARRAS (colunas) ----
-        plt.figure(figsize=(7, 4), dpi=100)
-        x = df["Data_parsed"] if not df["Data_parsed"].isna().all() else df.index
 
-        # garantir que x é convertível para matplotlib (lista de strings ou datetimes)
-        x_vals = list(x) if hasattr(x, "__iter__") else list(range(len(df)))
-        y_vals = df["Saldo Acumulado"].tolist()
+@app.route("/dados_tabela")
+def dados_tabela():
+    dados = gerar_dashboard()
+    if dados:
+        return jsonify(dados["tabela"])
+    return jsonify([])
 
-        plt.clf()
-        fig1 = plt.figure(figsize=(7, 4), dpi=100)
-        ax1 = fig1.add_subplot(1, 1, 1)
-        ax1.bar(x_vals, y_vals, color=azul)
-        ax1.set_title("Evolução do Saldo", color=cinza)
-        ax1.set_xlabel("Data", color=cinza)
-        ax1.set_ylabel("Saldo (R$)", color=cinza)
-        for label in ax1.get_xticklabels():
-            label.set_rotation(45)
-            label.set_color(cinza)
-        ax1.tick_params(axis='y', colors=cinza)
-        fig1.tight_layout()
-        fig1.savefig("static/saldo.png",
-                     bbox_inches='tight', facecolor='white')
-        plt.close(fig1)
 
-        # --- Gráfico por Categoria como PIZZA com % ---
-        cat = df.groupby("Categoria")["Valor Ajustado"].sum()
-        # se todas categorias somarem zero, evita erro
-        if cat.sum() == 0 or cat.empty:
-            # cria uma pizza vazia com placeholder
-            labels = ["Nenhum registro"]
-            sizes = [1]
-            colors = [azul]
-        else:
-            labels = cat.index.tolist()
-            sizes = cat.values.tolist()
-            colors = None  # matplotlib default
-
-        plt.clf()
-        fig2 = plt.figure(figsize=(7, 4), dpi=100)
-        ax2 = fig2.add_subplot(1, 1, 1)
-        wedges, texts, autotexts = ax2.pie(
-            sizes, labels=labels, autopct="%1.1f%%", startangle=90, textprops={'color': cinza}
-        )
-        ax2.set_title("Distribuição por Categoria (%)", color=cinza)
-        # ajusta aspecto para círculo
-        ax2.axis('equal')
-        fig2.tight_layout()
-        fig2.savefig("static/categorias.png",
-                     bbox_inches='tight', facecolor='white')
-        plt.close(fig2)
-
-    except Exception as e:
-        print("Erro ao gerar gráficos:", e)
-
-    return {"saldo": saldo, "previsao": previsao}
 
 
 @app.route("/regenerate_graphs", methods=["GET"])
@@ -281,6 +280,15 @@ def regenerate_graphs():
         return jsonify({"status": "no-data"}), 404
 
 
+@app.route("/chat")
+def dashboard_dados():
+    dados = gerar_dashboard()  # sua função existente
+    if not dados:
+        return jsonify({"saldo": 0, "previsao": 0, "entrada": 0, "saida": 0, "caixinha": 0})
+
+    return jsonify(dados)
+
+
 # Função de processamento
 def processar_mensagem(frase):
     frase = frase.lower().strip()
@@ -290,7 +298,7 @@ def processar_mensagem(frase):
     valor = float(valor_match.group().replace(
         ",", ".")) if valor_match else None
 
-    # Identifica tipo (entrada/saída)
+    # Identifica tipo (entrada/saída/cofre)
     if any(p in frase for p in ["entrada", "recebi", "ganhei", "salário", "deposito"]):
         tipo = "Entrada"
     elif any(p in frase for p in ["saída", "gastei", "paguei", "comprei", "compra"]):
@@ -304,7 +312,8 @@ def processar_mensagem(frase):
         "contas fixas": ["luz", "água", "aluguel", "internet"],
         "lazer": ["cinema", "viagem", "show", "bar"],
         "educação": ["curso", "faculdade", "livro"],
-        "salário": ["salário", "freela"]
+        "salário": ["salário", "freela"],
+        "cofre": ["caixinha", "investimento", "cofre"]
     }
 
     categoria = "outros"
@@ -325,8 +334,8 @@ def processar_mensagem(frase):
         return random.choice(mensagens_resposta), None, None
 
      # Caso a pessoa só diga "Tudo bem?"
-    cumprimentos = ["tudo bem", "como você ta",
-                    "de boa" "como tu ta", "tranquilo"]
+    cumprimentos = ["tudo bem?", "como você ta?",
+                    "de boa?" "como tu ta?", "tranquilo?"]
     if frase in cumprimentos:
         mensagens_resposta = [
             "Bem, e você?! 😊",
@@ -374,6 +383,9 @@ def mensagem():
 
 
 if __name__ == '__main__':
-    # imprime rotas para debug
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+    init_db()  # 🔹 cria as tabelas (usuarios e gastos) se não existirem
+    print("✅ Banco inicializado!")
     print(app.url_map)
     app.run(debug=True, port=5500)
